@@ -1,0 +1,127 @@
+-- if GameActive is True the player is inside the Arena
+
+-- game will last 30 seconds
+local GameLength = 60
+-- players will wait in Lobby for 5 seconds
+local LobbyWaitTime = 5
+--how many players do we need to start the game
+local PlayersRequiredToBegin = 2
+
+-- get the Lobby spawn location
+local LobbySpawn = game.Workspace.Lobby.LobbySpawn
+
+-- get the spawn points in the arena and assign to an array
+local ArenaSpawnPoints = game.Workspace.Arena.SpawnPoints:GetChildren()
+
+-- get the value from Replicated Storage
+local GameActive = game.ReplicatedStorage.GameActive
+local Status = game.ReplicatedStorage.Status
+
+-- Create a local copy of the Sword
+local Weapon = game.ReplicatedStorage.Sword
+
+-- called when player enters the Lobby
+-- if GameActive is false then we are still in the Lobby
+local LobbyTimer = function()
+	
+	while GameActive.Value == false do
+		-- an array to hold list of players in the game
+		local Players = game.Players:GetChildren()
+		-- how many players are there
+		local PlayerCount = #Players
+		
+		-- check if there are enough players to begin the game		
+		if PlayerCount < PlayersRequiredToBegin then
+			-- display message that we need more players to join before we can begin			
+			Status.Value = "Waiting for more players"
+		else
+			-- count down to the start of the game			
+			for i = LobbyWaitTime, 1, -1 do
+				Status.Value = "Starting game in " .. i .. " seconds"
+				wait(1)
+			end
+			-- set flag to show Game has started
+			GameActive.Value = true
+			return
+		end -- end if then else
+		
+		-- need wait here to avoid exhaust errors by running while loop every frame
+		wait(1)
+		
+	end -- end whie
+end
+
+-- called when a player enters the Arena
+local GameTimer = function()
+	
+	-- loop for length of game and then teleport players back to the Lobby
+	for i = GameLength, 1, -1 do
+		Status.Value = i .. " seconds remaining"
+		wait(1)
+	end
+	-- once game time is over set flag to game is over
+	GameActive.Value = false
+	
+end
+
+-- need to set up events to listen for changes in the Bool value 
+-- whenever GameActive changes this event will get triggered
+GameActive.Changed:Connect(function()
+	
+	-- if true teleport to Arena if false teleport to Lobby
+	if GameActive.Value == true then
+		
+		-- loop thru the array of players
+		for i, player in pairs(game.Players:GetChildren()) do
+			
+			-- get the Character object for the player
+			local character = player.Character
+			
+			-- CFrame is a data object that holds info on the position, size, rotation
+			-- set the players character object to be the same CFrame as the Arena CFrame
+			character.HumanoidRootPart.CFrame = ArenaSpawnPoints[i].CFrame
+			
+			-- give character as much health as possible
+			character.Humanoid.Health = character.Humanoid.MaxHealth
+			
+			-- every player should get a clone of the Sword
+			local tool = Weapon:Clone()
+			
+			-- add cloned weapon to players inventory
+			tool.Parent = player.Backpack
+ 			
+			-- equip the character with the tool automatically
+			character.Humanoid:EquipTool(tool)
+			
+			
+		end
+		
+		-- players start game in Arena
+		GameTimer()
+	else
+		-- teleport players back to Lobby when game is over
+		for i, player in pairs(game.Players:GetChildren()) do
+			
+			-- get the Character object for the player
+			local character = player.Character		
+			
+			-- CFrame is a data object that holds info on the position, size, rotation
+			-- set the players character object to be the same CFrame as the Lobby CFrame
+			character.HumanoidRootPart.CFrame = LobbySpawn.CFrame
+			
+			-- loop thru the parts of each character
+			for t,obj in pairs(character:GetChildren()) do
+				--  if obj is a tool object, destroy it
+				if obj:IsA("Tool") then
+					obj:Destroy()											
+				end
+			end
+			
+		end
+		LobbyTimer()
+	end
+	
+end)
+
+-- Start the game
+LobbyTimer()

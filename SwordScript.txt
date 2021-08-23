@@ -1,0 +1,86 @@
+-- 
+-- Classic Sword is a Tool. Tools are parts that can be picked up by a player
+-- When the button to activate the tool is clicked the Tool it will run the code in this script
+--
+
+-- Access the sword part which is the parent of this script
+local Tool = script.Parent
+
+-- a flag to indicate if we can inflict damage on another player
+local CanDamage = false
+
+-- how much damage can we inflict with each strike, reduces Health by this amount
+local Damage = 25
+
+-- Used to check that the attack doesnt hit multiple parts, hand, arm, head etc and deal damage 3 times instead of 1
+local Target
+
+-- need to check that what we have hit is a player
+-- when this called the part that has been hit will be passed to the function automatically
+local function onTouched(otherPart)
+	
+	print("Hitting otherPart " .. otherPart.Parent.Name)
+	
+	-- what we are hitting is a part and we need to know what that part belongs to to be sure its a player
+	-- if we dont find a Humanoid then what we hit isnt a player
+	local humanoid = otherPart.Parent:FindFirstChild("Humanoid")
+	
+	-- if we dont find a humanoid part then just exit the function
+	if not humanoid then
+		return
+	end
+	
+	-- check to see that we havent hit ourselves, the player holding the tool will be us
+	-- so if it isnt us then we've hit another player and if we can damage and 
+	-- Target checks that we only inflict damage once per swing
+	if humanoid.Parent ~= Tool.Parent and CanDamage and Target ~= humanoid then
+		
+		print("Inflicting Damage")
+		
+		-- so we've hit player once		
+		Target = humanoid
+		
+		-- the player who killed us 
+		humanoid:FindFirstChild("Killer").Value = Tool.Parent		
+		
+		-- inflict damage by damage amount
+		humanoid:TakeDamage(Damage)
+		-- Stop inflicting damage
+		CanDamage = false
+		
+	end
+end
+
+-- called when player clicks whatever button swings the sword
+local function Attack()
+	
+	-- need to check that the attack doesnt hit multiple parts, hand, arm, head etc and deal damage 3 times instead of 1
+	Target = nil
+	
+	-- create a new string to hold the animation 
+	local anim = Instance.new("StringValue")
+	
+	-- this must be named this way for Roblox to find the animation
+	anim.Name = "toolanim"
+	
+	-- swing sword downwards	
+	anim.Value = "Slash"
+	
+	-- set Parent of the animation to the Tool (Sword)
+	anim.Parent = Tool
+	
+	-- Now we can inflict damage for a short time
+	CanDamage = true
+	wait(0.4)
+	CanDamage = false	
+	
+end
+
+-- called when the Activate button is clicked, attach this to the Attack function above
+-- So we want to swing the sword and inflict damage
+Tool.Activated:Connect(Attack)
+
+-- triggered the sword object enters another part
+Tool.Handle.Touched:Connect(onTouched)
+
+

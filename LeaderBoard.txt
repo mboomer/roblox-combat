@@ -1,0 +1,45 @@
+-- get all the players in the game
+local Players = game.Players
+
+-- called when a new player joins the game
+local function SetupLeaderBoard(player)
+	
+	-- create a folder in the players data to the leader stats	
+	local leaderstats = Instance.new("Folder")
+	
+	-- this must be named leaderstats for Roblox to understand it
+	leaderstats.Name = "leaderstats"
+	
+	-- the parent of the leaderstats folder is the the player
+	leaderstats.Parent = player
+	
+	-- create int to store no of kills
+	local kills = Instance.new("IntValue")
+	kills.Name = "Kills"
+	-- kills belongs to the leaderstats folder	
+	kills.Parent = leaderstats
+	
+	-- who hit us
+	player.CharacterAdded:Connect(function(character)
+		
+		local humanoid = character:WaitForChild("Humanoid")
+		local objectvalue = Instance.new("ObjectValue")
+		
+		-- whenever a player get hits by a sword we store the killer object value to whatever just attacked them
+		objectvalue.Name = "Killer"
+		objectvalue.Parent = humanoid	
+		
+		humanoid.Died:connect(function()
+			-- get our killer
+			local killer = humanoid:WaitForChild("Killer")
+						
+			if killer.Value then
+				Players:GetPlayerFromCharacter(character).leaderstats.Kills.Value += 1
+				killer.Value = nil				
+			end
+		end)
+	end)
+end
+
+-- when a player is added the Function is called and the player added will be passed as a parameter of the function called
+Players.PlayerAdded:Connect(SetupLeaderBoard)
